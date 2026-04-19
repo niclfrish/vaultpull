@@ -5,47 +5,38 @@ import (
 	"os"
 )
 
-// Config holds the runtime configuration for vaultpull.
+// Config holds all runtime configuration for vaultpull.
 type Config struct {
 	VaultAddr  string
 	VaultToken string
-	Namespace  string
-	OutputFile string
 	SecretPath string
+	OutputFile string
+	Namespace  string
 }
 
-// Load reads configuration from environment variables and applies overrides.
-func Load(overrides ...func(*Config)) (*Config, error) {
-	cfg := &Config{
+// Load reads configuration from environment variables.
+func Load() (*Config, error) {
+	token := getEnv("VAULT_TOKEN", "")
+	if token == "" {
+		return nil, errors.New("config: VAULT_TOKEN is required")
+	}
+
+	secretPath := getEnv("VAULT_SECRET_PATH", "")
+	if secretPath == "" {
+		return nil, errors.New("config: VAULT_SECRET_PATH is required")
+	}
+
+	return &Config{
 		VaultAddr:  getEnv("VAULT_ADDR", "http://127.0.0.1:8200"),
-		VaultToken: os.Getenv("VAULT_TOKEN"),
-		Namespace:  os.Getenv("VAULT_NAMESPACE"),
-		OutputFile: ".env",
-	}
-
-	for _, override := range overrides {
-		override(cfg)
-	}
-
-	if err := cfg.validate(); err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
-}
-
-func (c *Config) validate() error {
-	if c.VaultToken == "" {
-		return errors.New("VAULT_TOKEN is required but not set")
-	}
-	if c.SecretPath == "" {
-		return errors.New("secret path is required")
-	}
-	return nil
+		VaultToken: token,
+		SecretPath: secretPath,
+		OutputFile: getEnv("VAULTPULL_OUTPUT", ".env"),
+		Namespace:  getEnv("VAULT_NAMESPACE", ""),
+	}, nil
 }
 
 func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
+	if v, ok := os.LookupEnv(key); ok {
 		return v
 	}
 	return fallback

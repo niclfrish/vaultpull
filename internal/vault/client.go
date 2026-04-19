@@ -75,3 +75,37 @@ func (c *Client) GetSecrets(secretPath string) (map[string]string, error) {
 	}
 	return result, nil
 }
+
+// ListSecrets returns the keys available under the given path using the
+// Vault LIST operation. It is compatible with both KV v1 and KV v2 mounts.
+func (c *Client) ListSecrets(secretPath string) ([]string, error) {
+	if secretPath == "" {
+		return nil, errors.New("secret path must not be empty")
+	}
+
+	secretPath = strings.TrimPrefix(secretPath, "/")
+
+	secret, err := c.api.Logical().List(secretPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list secrets at %q: %w", secretPath, err)
+	}
+	if secret == nil {
+		return nil, fmt.Errorf("no secrets found at path %q", secretPath)
+	}
+
+	rawKeys, ok := secret.Data["keys"]
+	if !ok {
+		return nil, fmt.Errorf("no keys returned at path %q", secretPath)
+	}
+
+	ifaces, ok := rawKeys.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected keys format at path %q", secretPath)
+	}
+
+	keys := make([]string, len(ifaces))
+	for i, v := range ifaces {
+		keys[i] = fmt.Sprintf("%v", v)
+	}
+	return keys, nil
+}

@@ -53,9 +53,17 @@ DEBUG=false
 | Flag | Env Var | Description |
 |------|---------|-------------|
 | `--path` | — | Vault secret path |
-| `--out` | `VAULTPULL_OUT` | Output `.env` file path |
+| `--out` | `VAULTPULL_OUT` | Output `.env` file path (default: `.env`) |
 | `--namespace` | `VAULT_NAMESPACE` | Vault namespace |
 | `--dry-run` | — | Print secrets without writing |
+| `--addr` | `VAULT_ADDR` | Vault server address |
+| `--token` | `VAULT_TOKEN` | Vault authentication token |
+
+---
+
+## Environment Variables
+
+`VAULT_ADDR` and `VAULT_TOKEN` are read automatically from the environment if the corresponding flags are not provided. This matches the standard Vault CLI behaviour.
 
 ---
 

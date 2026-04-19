@@ -1,44 +1,55 @@
 package sync
 
-// DiffResult holds the changes between existing and new secrets.
-type DiffResult struct {
-	Added   map[string]string
-	Removed map[string]string
-	Changed map[string]string
-	Unchanged map[string]string
+import "sort"
+
+// Status represents the diff state of a key.
+type Status string
+
+const (
+	StatusAdded     Status = "added"
+	StatusRemoved   Status = "removed"
+	StatusChanged   Status = "changed"
+	StatusUnchanged Status = "unchanged"
+)
+
+// DiffEntry holds information about a single key difference.
+type DiffEntry struct {
+	Key      string
+	Status   Status
+	OldValue string
+	NewValue string
 }
 
-// Diff compares existing env values against incoming secrets and
-// returns a categorised DiffResult.
-func Diff(existing, incoming map[string]string) DiffResult {
-	result := DiffResult{
-		Added:     make(map[string]string),
-		Removed:   make(map[string]string),
-		Changed:   make(map[string]string),
-		Unchanged: make(map[string]string),
-	}
+// DiffResult holds all diff entries.
+type DiffResult struct {
+	Entries []DiffEntry
+}
+
+// Diff computes the difference between current (local) and incoming (vault) secrets.
+func Diff(current, incoming map[string]string) *DiffResult {
+	result := &DiffResult{}
+	seen := map[string]bool{}
 
 	for k, newVal := range incoming {
-		oldVal, exists := existing[k]
+		seen[k] = true
+		oldVal, exists := current[k]
 		if !exists {
-			result.Added[k] = newVal
+			result.Entries = append(result.Entries, DiffEntry{Key: k, Status: StatusAdded, NewValue: newVal})
 		} else if oldVal != newVal {
-			result.Changed[k] = newVal
+			result.Entries = append(result.Entries, DiffEntry{Key: k, Status: StatusChanged, OldValue: oldVal, NewValue: newVal})
 		} else {
-			result.Unchanged[k] = newVal
+			result.Entries = append(result.Entries, DiffEntry{Key: k, Status: StatusUnchanged, OldValue: oldVal, NewValue: newVal})
 		}
 	}
 
-	for k, oldVal := range existing {
-		if _, exists := incoming[k]; !exists {
-			result.Removed[k] = oldVal
+	for k, oldVal := range current {
+		if !seen[k] {
+			result.Entries = append(result.Entries, DiffEntry{Key: k, Status: StatusRemoved, OldValue: oldVal})
 		}
 	}
 
+	sort.Slice(result.Entries, func(i, j int) bool {
+		return result.Entries[i].Key < result.Entries[j].Key
+	})
 	return result
-}
-
-// HasChanges returns true if there are any added, removed, or changed keys.
-func (d DiffResult) HasChanges() bool {
-	return len(d.Added) > 0 || len(d.Removed) > 0 || len(d.Changed) > 0
 }

@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"time"
@@ -31,10 +32,10 @@ type WriteFunc func(secrets map[string]string) error
 
 // Watcher polls Vault at a fixed interval and writes changes to disk.
 type Watcher struct {
-	cfg    WatchConfig
-	fetch  FetchFunc
-	write  WriteFunc
-	out    io.Writer
+	cfg   WatchConfig
+	fetch FetchFunc
+	write WriteFunc
+	out   io.Writer
 }
 
 // NewWatcher creates a new Watcher.
@@ -43,6 +44,11 @@ func NewWatcher(cfg WatchConfig, fetch FetchFunc, write WriteFunc, out io.Writer
 		out = os.Stdout
 	}
 	return &Watcher{cfg: cfg, fetch: fetch, write: write, out: out}
+}
+
+// logf writes a formatted message to the watcher's output writer.
+func (w *Watcher) logf(format string, args ...any) {
+	_, _ = fmt.Fprintf(w.out, "[watch] "+format+"\n", args...)
 }
 
 // Run starts the watch loop. It blocks until ctx is cancelled or MaxTicks is reached.
@@ -58,12 +64,12 @@ func (w *Watcher) Run(ctx context.Context) error {
 		case <-ticker.C:
 			secrets, err := w.fetch(ctx)
 			if err != nil {
-				_, _ = io.WriteString(w.out, "[watch] fetch error: "+err.Error()+"\n")
+				w.logf("fetch error: %v", err)
 			} else {
 				if werr := w.write(secrets); werr != nil {
-					_, _ = io.WriteString(w.out, "[watch] write error: "+werr.Error()+"\n")
+					w.logf("write error: %v", werr)
 				} else {
-					_, _ = io.WriteString(w.out, "[watch] secrets synced\n")
+					w.logf("secrets synced")
 				}
 			}
 			ticks++

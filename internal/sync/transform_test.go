@@ -104,3 +104,14 @@ func TestTransformer_Apply_DoesNotMutateInput(t *testing.T) {
 		t.Error("input map was mutated")
 	}
 }
+
+func TestTransformer_Apply_EmptyMap(t *testing.T) {
+	tr := NewTransformer(TrimSpaceTransform())
+	out, err := tr.Apply(map[string]string{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(out) != 0 {
+		t.Errorf("expected empty map, got %d entries", len(out))
+	}
+}

@@ -53,6 +53,15 @@ func TestTruncateValue_CustomSuffix(t *testing.T) {
 	}
 }
 
+func TestTruncateValue_EmptyInput(t *testing.T) {
+	cfg := TruncateConfig{MaxLength: 10, Suffix: "..."}
+	input := ""
+	got := TruncateValue(input, cfg)
+	if got != input {
+		t.Errorf("expected empty string, got %q", got)
+	}
+}
+
 func TestTruncateSecrets_AllValues(t *testing.T) {
 	cfg := TruncateConfig{MaxLength: 5, Suffix: "..."}
 	secrets := map[string]string{

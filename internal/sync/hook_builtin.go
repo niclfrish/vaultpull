@@ -45,3 +45,15 @@ func CountLimitHook(max int) HookFunc {
 		return nil
 	}
 }
+
+// FilterEventHook wraps a HookFunc so that it only executes for the specified
+// event. For all other events the hook is a no-op. This is useful when
+// composing hooks that should only run at a particular lifecycle stage.
+func FilterEventHook(event HookEvent, h HookFunc) HookFunc {
+	return func(ctx context.Context, e HookEvent, secrets map[string]string) error {
+		if e != event {
+			return nil
+		}
+		return h(ctx, e, secrets)
+	}
+}

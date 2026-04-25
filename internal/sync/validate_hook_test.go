@@ -64,3 +64,19 @@ func TestValidateAndReport_WarningInOutput(t *testing.T) {
 		t.Logf("output: %s", buf.String())
 	}
 }
+
+func TestValidateAndReport_MultipleRequiredMissing(t *testing.T) {
+	var buf bytes.Buffer
+	secrets := map[string]string{"DB_HOST": "localhost"}
+	required := []string{"API_SECRET", "API_KEY", "DB_PASSWORD"}
+	err := ValidateAndReport(&buf, secrets, required)
+	if err == nil {
+		t.Fatal("expected error due to multiple missing required keys")
+	}
+	output := buf.String()
+	for _, key := range required {
+		if !strings.Contains(output, key) {
+			t.Errorf("expected missing key %q to appear in output, got: %s", key, output)
+		}
+	}
+}

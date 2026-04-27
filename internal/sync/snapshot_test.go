@@ -83,3 +83,23 @@ func TestSnapshot_Save_OverwritesPrevious(t *testing.T) {
 		t.Errorf("expected 2 keys, got %d", len(loaded.Secrets))
 	}
 }
+
+func TestSnapshot_SaveAndLoad_PreservesNamespace(t *testing.T) {
+	store, _ := NewSnapshotStore(t.TempDir())
+	snap := Snapshot{
+		Path:      "secret/app",
+		Namespace: "staging",
+		Secrets:   map[string]string{"ENV": "staging"},
+	}
+	_ = store.Save(snap)
+	loaded, err := store.Load("secret/app", "staging")
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if loaded == nil {
+		t.Fatal("expected snapshot, got nil")
+	}
+	if loaded.Namespace != "staging" {
+		t.Errorf("expected namespace %q, got %q", "staging", loaded.Namespace)
+	}
+}

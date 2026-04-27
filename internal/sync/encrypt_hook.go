@@ -8,18 +8,22 @@ import (
 
 // EncryptHookResult holds the result of an encrypt/decrypt hook operation.
 type EncryptHookResult struct {
-	Processed int
+	Processed  int
 	Passphrase string
 }
 
 // EncryptAndWrite encrypts secrets using the given passphrase and writes them
 // via the provided writer function. Reports a summary to w (defaults to os.Stdout).
+// Returns an error if the passphrase is empty, encryption fails, or the write fails.
 func EncryptAndWrite(
 	secrets map[string]string,
 	passphrase string,
 	writeFn func(map[string]string) error,
 	w io.Writer,
 ) error {
+	if passphrase == "" {
+		return fmt.Errorf("encrypt hook: passphrase must not be empty")
+	}
 	if w == nil {
 		w = os.Stdout
 	}
@@ -40,11 +44,15 @@ func EncryptAndWrite(
 
 // DecryptAndReturn decrypts secrets using the given passphrase and returns the
 // plaintext map. Reports a summary to w (defaults to os.Stdout).
+// Returns an error if the passphrase is empty or decryption fails.
 func DecryptAndReturn(
 	secrets map[string]string,
 	passphrase string,
 	w io.Writer,
 ) (map[string]string, error) {
+	if passphrase == "" {
+		return nil, fmt.Errorf("decrypt hook: passphrase must not be empty")
+	}
 	if w == nil {
 		w = os.Stdout
 	}

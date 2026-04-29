@@ -75,6 +75,27 @@ func TestPipeline_StageError_WrapsName(t *testing.T) {
 	}
 }
 
+// TestPipeline_StageError_StopsExecution verifies that when a stage returns an
+// error, subsequent stages are not executed.
+func TestPipeline_StageError_StopsExecution(t *testing.T) {
+	p := NewPipeline()
+	executed := false
+	p.AddStage("failing-stage", func(s map[string]string) (map[string]string, error) {
+		return nil, errors.New("boom")
+	})
+	p.AddStage("should-not-run", func(s map[string]string) (map[string]string, error) {
+		executed = true
+		return s, nil
+	})
+	_, err := p.Run(map[string]string{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if executed {
+		t.Error("expected subsequent stage to not execute after error")
+	}
+}
+
 func TestPipeline_StageNames_ReturnsOrder(t *testing.T) {
 	p := NewPipeline()
 	p.AddStage("a", func(s map[string]string) (map[string]string, error) { return s, nil })
